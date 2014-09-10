@@ -1,0 +1,12 @@
+background_b: 255
+background_g: 86
+background_r: 150
+rosdistro: 'hydro
+
+  '
+roslaunch:
+  uris: {host_eduncan_linux__53660: 'http://eduncan-Linux:53660/'}
+rosversion: '1.10.10
+
+  '
+run_id: 99612daa-388c-11e4-a691-a088b466de48
