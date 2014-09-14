@@ -38,18 +38,41 @@
 
 import rospy
 from std_msgs.msg import String
+from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Vector3
+from sensor_msgs.msg import LaserScan
 
-def talker():
-    pub = rospy.Publisher('chatter', String, queue_size=10)
-    rospy.init_node('talker', anonymous=True)
+distance_to_wall = -1.0
+
+def scan_received(msg):
+    """ Callback function for msg of type sensor_msgs/LaserScan """
+    global distance_to_wall
+    valid_measurements = []
+    angles_to_check = [355, 356, 357, 358, 359, 0, 1, 2, 3, 4]
+    for i in angles_to_check:
+        if msg.ranges[i] != 0 and msg.ranges[i] < 7:
+            valid_measurements.append(msg.ranges[i])
+    if len(valid_measurements):
+        distance_to_wall = sum(valid_measurements)/float(len(valid_measurements))
+    else:
+        distance_to_wall = -1.0
+    print distance_to_wall
+
+def wall():
+    """ Run loop for the wall node """
+    pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+    sub = rospy.Subscriber('/scan', LaserScan, scan_received)
+    rospy.init_node('wall', anonymous=True)
     r = rospy.Rate(10) # 10hz
     while not rospy.is_shutdown():
-        str = "hello world %s"%rospy.get_time()
-        rospy.loginfo(str)
-        pub.publish(str)
+        if distance_to_wall == -1:
+            msg = Twist()
+        else:
+            msg = Twist(linear=Vector3(x=(distance_to_wall-1)*.2))
+        pub.publish(msg)
         r.sleep()
         
 if __name__ == '__main__':
     try:
-        talker()
+        wall()
     except rospy.ROSInterruptException: pass
