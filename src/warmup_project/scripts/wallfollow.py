@@ -84,7 +84,7 @@ def scan_received(msg):
         distance_to_backwards_wall = -1.0
 
     #Go through degrees near 135, average those and assign to distance_to_backward_wall
-    for i in angle_front:
+    for i in angle_ninety:
         if msg.ranges[i] != 0 and msg.ranges[i] < 7:
             valid_measurements.append(msg.ranges[i])
     if len(valid_measurements): 
@@ -93,7 +93,7 @@ def scan_received(msg):
         distance_from_side = -1.0
 
     #Go through degrees near 0, average those and assign to front
-    for i in angle_ninety:
+    for i in angle_front:
         if msg.ranges[i] != 0 and msg.ranges[i] < 7:
             valid_measurements.append(msg.ranges[i])
     if len(valid_measurements): 
