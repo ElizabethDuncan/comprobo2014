@@ -44,15 +44,20 @@ from sensor_msgs.msg import LaserScan
 
 distance_to_forward_wall = -1.0
 distance_to_backwards_wall = -1.0
-desired_distance = 1.414
+distance_from_side = -1.0
+desired_distance = 1
 
 def scan_received(msg):
     """ Callback function for msg of type sensor_msgs/LaserScan """
-    global distance_to_wall
+    global desired_distance
+    global distance_to_forward_wall
+    global distance_to_backwards_wall
+    global distance_from_side
     valid_measurements = []
     angles_to_check = [355, 356, 357, 358, 359, 0, 1, 2, 3, 4]
     angle_fourtyfive = [40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50]
     angle_onethirtyfive = [130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140]
+    angle_ninety = [85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95]
     #Go through degrees near 45, average those and assing to distance_to_forward_wall
     for i in angle_fourtyfive:
         if msg.ranges[i] != 0 and msg.ranges[i] < 7:
@@ -61,32 +66,91 @@ def scan_received(msg):
         distance_to_forward_wall = sum(valid_measurements)/float(len(valid_measurements))
     else:
         distance_to_forward_wall = -1.0
-    print "In front: " + str(distance_to_forward_wall)
+    #print "distance_to_forward_wall: " + str(distance_to_forward_wall)
 
     #Go through degrees near 135, average those and assing to distance_to_backward_wall
     for i in angle_onethirtyfive:
         if msg.ranges[i] != 0 and msg.ranges[i] < 7:
             valid_measurements.append(msg.ranges[i])
-    if len(valid_measurements):
+    if len(valid_measurements): 
         distance_to_backwards_wall = sum(valid_measurements)/float(len(valid_measurements))
     else:
         distance_to_backwards_wall = -1.0
-    print "In front: " + str(distance_to_backwards_wall)
+    #print "distance_to_backwards_wall: " + str(distance_to_backwards_wall)
+
+    #Go through degrees near 135, average those and assing to distance_to_backward_wall
+    for i in angle_ninety:
+        if msg.ranges[i] != 0 and msg.ranges[i] < 7:
+            valid_measurements.append(msg.ranges[i])
+    if len(valid_measurements): 
+        distance_from_side = sum(valid_measurements)/float(len(valid_measurements))
+    else:
+        distance_from_side = -1.0
+    #print "distance_from_side: " + str(distance_from_side)
+
+def getch():
+    """ Return the next character typed on the keyboard """
+    import sys, tty, termios
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setraw(sys.stdin.fileno())
+        ch = sys.stdin.read(1)
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+    return ch
+
 
 def wall():
+    global desired_distance
+    global distance_to_forward_wall
+    global distance_to_backwards_wall
+    global distance_from_side
     """ Run loop for the wall node """
     pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
     sub = rospy.Subscriber('/scan', LaserScan, scan_received)
     rospy.init_node('wall', anonymous=True)
     r = rospy.Rate(10) # 10hz
-    forwardOffset = desired_distance - distance_to_forward_wall
+    forwardOffset = desired_distance - distance_to_forward_wall 
+    #forwardOffset = -1 * forwardOffset
+    
     backwardsOffset = desired_distance - distance_to_backwards_wall
     while not rospy.is_shutdown():
-        if distance_to_forward_wall == desired_distance and distance_to_backwards_wall == desired_distance:
-            msg = Twist()
+        if distance_to_backwards_wall == -1 or distance_to_forward_wall == -1:
+            print "bad valid_measurements"
+            if distance_from_side != -1 and distance_from_side < 1:
+                zOffset = 0.05
+                forward = 0.05
+            elif distance_from_side > 1: 
+                zOffset = -0.05
+                forward = 0.05
+            else:
+                print "NO MEASUREMENTS"
+                zOffset = 0
+                forward = 0
+        elif distance_to_forward_wall > distance_to_backwards_wall:
+            zOffset = (desired_distance - distance_to_backwards_wall)*1
+            print "forward bigger: " + str(zOffset)
+            if zOffset > 0.1:
+                zOffset = 0.1
+            forward = 0.1
         else:
-            #IMPLEMENT CORRECT MESSAGE
-            msg = Twist(linear=Vector3(x=.2), angular= Vector3(x=))
+            zOffset = (desired_distance - distance_to_forward_wall)*1
+            print "forward bigger: " + str(zOffset)
+            forward = 0.1
+        # if distance_from_side < desired_distance:
+        #     print "move away"
+        #     zOffset = 0.2
+        # else:
+        #     print "move closer"
+        #     zOffset = -0.2
+        # if distance_to_forward_wall == desired_distance and distance_to_backwards_wall == desired_distance:
+        #     print "offset " + str(forwardOffset)
+        #     msg = Twist()
+        # else:
+        #IMPLEMENT CORRECT MESSAGE
+        msg = Twist(linear=Vector3(x=forward), angular=Vector3(z = (-zOffset)))
+        #msg = Twist()
         pub.publish(msg)
         r.sleep()
         
