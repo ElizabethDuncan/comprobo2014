@@ -33,8 +33,10 @@
 #
 # Revision $Id$
 
-## Simple talker demo that published std_msgs/Strings messages
-## to the 'chatter' topic
+## Simple Neato demo that has the Neato follow a wall
+## Neato mus tbe placed within 2 meters of the wall for it to "find" the wall
+## Neato stoppes and program ends when object is in front of the Neato
+## CompRobo - 9/1
 
 import rospy
 from std_msgs.msg import String
@@ -58,7 +60,6 @@ def scan_received(msg):
     global distance_from_side
     global distance_from_front
     valid_measurements = []
-    angles_to_check = [355, 356, 357, 358, 359, 0, 1, 2, 3, 4]
     angle_fourtyfive = [40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50]
     angle_onethirtyfive = [130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140]
     angle_ninety = [85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95]
