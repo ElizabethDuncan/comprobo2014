@@ -47,6 +47,7 @@ class PersonFollower():
     def __init__(self):
         #Set up for communication with the cmd_vel and scan node - used by the Neato
         self.valid_measurements = []
+        self.front_measurements = []
         self.last_measurement = []
         self.first_run = True
         self.pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
@@ -57,7 +58,8 @@ class PersonFollower():
     def scan_received(self, msg):
         """ Callback function for msg of type sensor_msgs/LaserScan """
         self.valid_measurements = []
-        angle_front = [315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 0, 1, 2, 3, 4,5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45]
+        angle_front = [315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 1, 2, 3, 4,5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45]
+        forward_measurements = [355, 356, 357, 358, 359, 1, 2, 3, 4, 5]
         #Go through degrees near 0, average those and assign to front
         for i in angle_front:
             if  msg.ranges[i] > 7:
@@ -65,26 +67,46 @@ class PersonFollower():
             else:
                 self.valid_measurements.append(round(msg.ranges[i], 1))
 
+        #Go through degrees near 0, average those and assign to front
+        for i in forward_measurements:
+            if msg.ranges[i] != 0 and msg.ranges[i] < 7:
+                self.front_measurements.append(msg.ranges[i])
+        if len(self.front_measurements): 
+            self.distance_from_front = sum(self.front_measurements)/float(len(self.front_measurements))
+        else:
+            self.distance_from_front = -1
+
     def wall(self):
-
+        zOffset = 0
+        xOffset = 0
+        print self.first_run
         while not rospy.is_shutdown():
-
+            #print self.first_run
             #Set default state
             state = 'idle'
             #print self.valid_measurements
             for index in range(0, len(self.valid_measurements)):
-                #print len(self.valid_measurements)
+                #print "Compare: " + str(index)
+                
                 if self.first_run == False:
                     if self.valid_measurements[index] != self.last_measurement[index] and self.valid_measurements[index] != 0.0 and self.last_measurement[index] != 0.0:
                         difference = abs(self.valid_measurements[index] - self.last_measurement[index])
-                        if difference > 0:
+                        if difference > 0.3:
                             print "difference!"
                             print index
-                            
+                            if index < 45:
+                                zOffset = ((45 - index) * 0.01) *-1
+                            if index > 45:
+                                zOffset = ((45 - index) * 0.01) *-1
+                    if self.distance_from_front != 1:
+                        xOffset = self.distance_from_front-1
+                        print xOffset
+                    else:
+                        xOffset = 0
 
             #Show Neato state and send appropriate message to Neato
             #print state
-            msg = Twist(linear=Vector3(x=0), angular=Vector3(z = (-0)))
+            msg = Twist(linear=Vector3(x=xOffset), angular=Vector3(z = zOffset))
             self.pub.publish(msg)
             self.last_measurement = self.valid_measurements
             self.first_run = False
