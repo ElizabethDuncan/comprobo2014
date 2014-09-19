@@ -33,8 +33,8 @@
 #
 # Revision $Id$
 
-## Simple talker demo that published std_msgs/Strings messages
-## to the 'chatter' topic
+## Simple person follow Neato deamo
+## Neato turns to and moves towards the nearest object
 
 import rospy
 import numpy as np
@@ -59,7 +59,7 @@ def scan_received(msg):
         else:
             distance_measurements.append(1000)
 
-def wall():
+def follow():
     """ Run loop for the wall node """
     global distance_measurements
 
@@ -103,5 +103,5 @@ def wall():
         
 if __name__ == '__main__':
     try:
-        wall()
+        follow()
     except rospy.ROSInterruptException: pass
