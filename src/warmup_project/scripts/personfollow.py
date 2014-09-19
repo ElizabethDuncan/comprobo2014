@@ -49,50 +49,54 @@ def scan_received(msg):
     """ Callback function for msg of type sensor_msgs/LaserScan """
     global distance_measurements
 
+    #Get data for all 360 degrees
     distance_measurements = []
     angles = range(360)
-
     for i in angles:
+        #Only add "good measurements" to the list
         if msg.ranges[i] != 0 and msg.ranges[i] < 7 and msg.ranges[i] > 0.2:
             distance_measurements.append(msg.ranges[i])
         else:
             distance_measurements.append(1000)
-    #print distance_measurements
-    #print distance_measurements
 
 def wall():
-    global distance_measurements
     """ Run loop for the wall node """
+    global distance_measurements
+
+    #Basic setup for the Neato
     pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
     sub = rospy.Subscriber('/scan', LaserScan, scan_received)
     rospy.init_node('wall', anonymous=True)
-    r = rospy.Rate(10) # 10hz
 
+    #Variables for this function
+    r = rospy.Rate(10) # 10hz
     desired_distance = 0.5
+    state = 'idle'
     
     while not rospy.is_shutdown():
-        # print "distance_to_wall " + str(distance_to_wall)
-        # print "right " + str(right)
-        # print "left " + str(left)
-        if len(distance_measurements) != 0:
 
+        #Only move the Neato if distance measurements have been taken so far
+        if len(distance_measurements) != 0:
+            #Get angle and distance from the minimum value in 360 degree measurements 
             angle = np.argmin(distance_measurements)
             minimum = distance_measurements[angle]
-            # print "angle: " + str(angle)
-            # print "minimum: " + str(distance_measurements[angle])
 
-            xOffset = (minimum-desired_distance)*.2
-
+            #Set state based on if needs to turn right or left
             if angle > 180:
-                print "right"
+                state = "turn right"
+            if angle < 180:
+                state =  "turn left"
+
+            #Set angle based on state
+            if state == 'turn left':
+                zOffset = angle * 0.01
+            if state == 'turn right':
                 zOffset = (360 - angle) * 0.01 * -1
 
-            if angle < 180:
-                print "left"
-                zOffset = angle * 0.01
-            print zOffset
-
+            #Have Neato move porportially forwards to the nearest object
+            xOffset = (minimum-desired_distance)*.2
             
+            #Set message to Neato!
             msg = Twist(linear=Vector3(x=xOffset), angular=Vector3(z = zOffset))
             pub.publish(msg)
             r.sleep()
