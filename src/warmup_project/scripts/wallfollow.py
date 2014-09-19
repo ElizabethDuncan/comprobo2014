@@ -117,7 +117,7 @@ def wall():
     #Set default state
     state = 'idle'
     
-    #Assign states
+    
     while not rospy.is_shutdown():
         #Check if needs to stop program
         if distance_from_front > 0  and distance_from_front < 0.4:
@@ -125,6 +125,7 @@ def wall():
             pub.publish(Twist())
             break
 
+        #Assign states
         if distance_to_backwards_wall == -1 or distance_to_forward_wall == -1:
             #No measurements coming in from 45 and 135 degrees - use 90 degrees measurments instead
             if distance_from_side != -1 and distance_from_side < 1:
